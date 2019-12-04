@@ -1,0 +1,96 @@
+#!./venv/bin/python
+# ------------------------------------------------------------------------------
+#  Copyright (c) 2019. Anas Abu Farraj
+# ------------------------------------------------------------------------------
+"""Learning Flask-RESTful extension."""
+
+from flask import Flask, request
+from flask_restful import Resource, Api, regparse
+from flask_jwt import JWT, jwt_required
+
+from security import authenticate, identity
+
+APP = Flask(__name__)
+APP.secret_key = 'secret_password'
+API = Api(APP)
+JWT = JWT(APP, authenticate, identity)
+
+ITEMS = [{'name': 'book', 'price': 17.99}]
+
+
+class ItemList(Resource):
+    @jwt_required()
+    def get(self):
+        """Returns a JSON of all items with 200 (OK) response."""
+        return {'items': ITEMS}, 200
+
+
+class Item(Resource):
+    parser = regparse.RequestParser()
+    parser.add_argument('price',
+                        type=float,
+                        required=True,
+                        help='This field cannot be blank!')
+
+    @jwt_required()
+    def get(self, name):
+        """Returns item by name if found.
+        Lazy iterate over a filter object with next, return an item if found,
+        or return None.
+        :param name: string.
+        :returns: {"item": <name>} or {"item": null}, 200 (OK) if True, otherwise 404 (NOT FOUND).
+        """
+        item = next(filter(lambda x: x['name'] == name, ITEMS), None)
+        return {'item': item}, 200 if item else 404
+
+    @jwt_required()
+    def post(self, name):
+        """Creates and append new item, returns a message if exist and 400 (BAD REQUEST).
+        :param name: string.
+        :returns: item and 201 (CREATED).
+        """
+
+        item = next(filter(lambda x: x['name'] == name, ITEMS), None)
+        if item:
+            return {'message': f'item with name {name} already exists!'}, 400
+
+        request_data = Item.parser.parse_args()
+        item = {'name': name, 'price': request_data['price']}
+        ITEMS.append(item)
+
+        return item, 201
+
+    @jwt_required()
+    def delete(self, name):
+        """Deletes item if exist and return message, otherwise returns message and 400 (BAD REQUEST).
+        Deletion happens by overwriting existing items database, and returns new
+        constructed database excluding named item.
+        :param name: string.
+        :return: new constructed items database and 200 (OK), otherwise message and
+        400 (BAD REQUEST).
+        """
+        global ITEMS
+        item = next(filter(lambda x: x['name'] == name, ITEMS), None)
+        if item:
+            ITEMS = next(filter(lambda x: x['name'] != name, ITEMS), None)
+            return {'message': 'item deleted'}, 200
+        return {'message': 'item not exists'}, 400
+
+    @jwt_required()
+    def put(self, name):
+        """Returns updated item if exists and 200 (OK), otherwise add item to database.
+        :param name: string.
+        :return: item as dictionary
+        """
+        request_data = Item.parser.parse_args()
+        item = next(filter(lambda x: x['name'] == name, ITEMS), None)
+        if item:
+            item.update(request_data)
+        else:
+            item = {'name': name, 'price': request_data['price']}
+            ITEMS.append(item)
+        return item, 200
+
+
+API.add_resource(ItemList, '/item')
+API.add_resource(Item, '/item/<string:name>')
