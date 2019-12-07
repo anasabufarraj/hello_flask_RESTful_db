@@ -2,23 +2,61 @@
 # ------------------------------------------------------------------------------
 #  Copyright (c) 2019. Anas Abu Farraj
 # ------------------------------------------------------------------------------
-"""Learning Flask-RESTful extension."""
+"""Learning how to build Flask REST API with database extension."""
 
-from flask import Flask, request
-from flask_restful import Resource, Api, regparse
+from datetime import timedelta
+
+from flask import Flask, jsonify, render_template, request, current_app
 from flask_jwt import JWT, jwt_required
+from flask_restful import Resource, Api, reqparse
 
 from security import authenticate, identity
 
 APP = Flask(__name__)
-APP.secret_key = 'secret_password'
 API = Api(APP)
+
+APP.secret_key = 'secret_password'
+APP.config['JWT_AUTH_URL_RULE'] = '/login'
+APP.config['JWT_AUTH_USERNAME_KEY'] = 'username'
+APP.config['JWT_EXPIRATION_DELTA'] = timedelta(seconds=1800)
+
 JWT = JWT(APP, authenticate, identity)
 
 ITEMS = [{'name': 'book', 'price': 17.99}]
 
 
+@JWT.auth_response_handler
+def response_handler(access_token, user):
+    """Returns access token and stored user id."""
+    return jsonify({
+        'access_token': access_token.decode('utf-8'),
+        'user_id': user.id,
+        'username': user.username
+    })
+
+
+@JWT.jwt_error_handler
+def error_handler(error):
+    """Returns JSON object with response code and message
+    with response code in the header."""
+    return jsonify({
+        'code': error.status_code,
+        'message': error.description,
+    }), error.status_code
+
+
+@APP.route('/')
+def index():
+    """Returns home page template with details."""
+    user_agent = request.user_agent
+    app_name = current_app.name
+    return render_template('index.html',
+                           user_agent=user_agent,
+                           app_name=app_name), 200
+
+
 class ItemList(Resource):
+    """Dealing with store item listing."""
     @jwt_required()
     def get(self):
         """Returns a JSON of all items with 200 (OK) response."""
@@ -26,7 +64,8 @@ class ItemList(Resource):
 
 
 class Item(Resource):
-    parser = regparse.RequestParser()
+    """Manage store items."""
+    parser = reqparse.RequestParser()
     parser.add_argument('price',
                         type=float,
                         required=True,
@@ -35,8 +74,7 @@ class Item(Resource):
     @jwt_required()
     def get(self, name):
         """Returns item by name if found.
-        Lazy iterate over a filter object with next, return an item if found,
-        or return None.
+        Lazy iterate over a filter object with next, return an item if found, or return None.
         :param name: string.
         :returns: {"item": <name>} or {"item": null}, 200 (OK) if True, otherwise 404 (NOT FOUND).
         """
@@ -49,7 +87,6 @@ class Item(Resource):
         :param name: string.
         :returns: item and 201 (CREATED).
         """
-
         item = next(filter(lambda x: x['name'] == name, ITEMS), None)
         if item:
             return {'message': f'item with name {name} already exists!'}, 400
@@ -94,3 +131,6 @@ class Item(Resource):
 
 API.add_resource(ItemList, '/item')
 API.add_resource(Item, '/item/<string:name>')
+
+if __name__ == '__main__':
+    APP.run()
