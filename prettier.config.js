@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019. Anas Abu Farraj
+ * Copyright (c) 2019. Anas Abu Farraj.
  */
 
 module.exports = {

@@ -1,6 +1,6 @@
 #!./venv/bin/python
 # ------------------------------------------------------------------------------
-#  Copyright (c) 2019. Anas Abu Farraj
+#  Copyright (c) 2019. Anas Abu Farraj.
 # ------------------------------------------------------------------------------
 """Learning how to build Flask REST API with database extension."""
 
@@ -15,9 +15,10 @@ from security import authenticate, identity
 APP = Flask(__name__)
 API = Api(APP)
 
-APP.secret_key = 'secret_password'
+APP.secret_key = 'D195A7937E1C15FF1925A72593EBE812160CFB909CAE23D3E4B46EBD7AA81D53'
 APP.config['JWT_AUTH_URL_RULE'] = '/login'
 APP.config['JWT_AUTH_USERNAME_KEY'] = 'username'
+APP.config['JWT_AUTH_PASSWORD_KEY'] = 'password'
 APP.config['JWT_EXPIRATION_DELTA'] = timedelta(seconds=1800)
 
 JWT = JWT(APP, authenticate, identity)
@@ -37,8 +38,8 @@ def response_handler(access_token, user):
 
 @JWT.jwt_error_handler
 def error_handler(error):
-    """Returns JSON object with response code and message
-    with response code in the header."""
+    """Returns JSON object with response code and message with response
+    code in the header."""
     return jsonify({
         'code': error.status_code,
         'message': error.description,
@@ -50,9 +51,7 @@ def index():
     """Returns home page template with details."""
     user_agent = request.user_agent
     app_name = current_app.name
-    return render_template('index.html',
-                           user_agent=user_agent,
-                           app_name=app_name), 200
+    return render_template('index.html', user_agent=user_agent, app_name=app_name), 200
 
 
 class ItemList(Resource):
@@ -66,10 +65,7 @@ class ItemList(Resource):
 class Item(Resource):
     """Manage store items."""
     parser = reqparse.RequestParser()
-    parser.add_argument('price',
-                        type=float,
-                        required=True,
-                        help='This field cannot be blank!')
+    parser.add_argument('price', type=float, required=True, help='This field cannot be blank!')
 
     @jwt_required()
     def get(self, name):
@@ -79,11 +75,11 @@ class Item(Resource):
         :returns: {"item": <name>} or {"item": null}, 200 (OK) if True, otherwise 404 (NOT FOUND).
         """
         item = next(filter(lambda x: x['name'] == name, ITEMS), None)
-        return {'item': item}, 200 if item else 404
+        return item, 200 if item else 404
 
     @jwt_required()
     def post(self, name):
-        """Creates and append new item, returns a message if exist and 400 (BAD REQUEST).
+        """Creates and append new item, if exists returns a message and 400 (BAD REQUEST).
         :param name: string.
         :returns: item and 201 (CREATED).
         """
@@ -109,7 +105,8 @@ class Item(Resource):
         global ITEMS
         item = next(filter(lambda x: x['name'] == name, ITEMS), None)
         if item:
-            ITEMS = next(filter(lambda x: x['name'] != name, ITEMS), None)
+            ITEMS = [next(filter(lambda x: x['name'] != name, ITEMS), None)]
+            print(ITEMS)
             return {'message': 'item deleted'}, 200
         return {'message': 'item not exists'}, 400
 

@@ -1,10 +1,11 @@
 #!./venv/bin/python
 # ------------------------------------------------------------------------------
-#  Copyright (c) 2019. Anas Abu Farraj
+#  Copyright (c) 2019. Anas Abu Farraj.
 # ------------------------------------------------------------------------------
 """User authentication module."""
 
 from user import User
+from werkzeug.security import safe_str_cmp
 
 
 def authenticate(username, password):
@@ -14,7 +15,7 @@ def authenticate(username, password):
     :return: dictionary {'id': <id>, 'username': <username>, 'password': <password>}.
     """
     user = User.find_user_by_username(username)
-    if user and user.password == password:
+    if user and safe_str_cmp(user.password.encode('utf-8'), password.encode('utf-8')):
         return user
 
 
