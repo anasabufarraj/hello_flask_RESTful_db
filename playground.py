@@ -2,14 +2,15 @@
 # ------------------------------------------------------------------------------
 #  Copyright (c) 2019. Anas Abu Farraj.
 # ------------------------------------------------------------------------------
+"""Python playground."""
 
-import sqlite3
 
-connection = sqlite3.connect('data.db')
-cursor = connection.cursor()
+class SomeClass:
+    @classmethod
+    def class_name(cls):
+        return cls.__name__
 
-cursor.execute(
-    'CREATE TABLE IF NOT EXISTS users (id INT, username TEXT, password TEXT)')
 
-connection.commit()
-connection.close()
+myClass = SomeClass()
+
+print(myClass.class_name())  # SomeClass

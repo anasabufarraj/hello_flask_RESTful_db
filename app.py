@@ -13,7 +13,6 @@ from flask_restful import Resource, Api, reqparse
 from security import authenticate, identity
 
 APP = Flask(__name__)
-API = Api(APP)
 
 APP.secret_key = 'D195A7937E1C15FF1925A72593EBE812160CFB909CAE23D3E4B46EBD7AA81D53'
 APP.config['JWT_AUTH_URL_RULE'] = '/login'
@@ -21,11 +20,18 @@ APP.config['JWT_AUTH_USERNAME_KEY'] = 'username'
 APP.config['JWT_AUTH_PASSWORD_KEY'] = 'password'
 APP.config['JWT_EXPIRATION_DELTA'] = timedelta(seconds=1800)
 
+API = Api(APP)
 JWT = JWT(APP, authenticate, identity)
 
-ITEMS = [{'name': 'book', 'price': 17.99}]
+# ------------------------------------------------------------------------------
+# Database Setup:
+# ------------------------------------------------------------------------------
+ITEMS = [{'name': 'book', 'price': 17.99}]  # TODO: Store in database isntead
 
 
+# ------------------------------------------------------------------------------
+# Application Error Handlers:
+# ------------------------------------------------------------------------------
 @JWT.auth_response_handler
 def response_handler(access_token, user):
     """Returns access token and stored user id."""
@@ -46,6 +52,9 @@ def error_handler(error):
     }), error.status_code
 
 
+# ------------------------------------------------------------------------------
+# Application Routes:
+# ------------------------------------------------------------------------------
 @APP.route('/')
 def index():
     """Returns home page template with details."""
@@ -54,6 +63,9 @@ def index():
     return render_template('index.html', user_agent=user_agent, app_name=app_name), 200
 
 
+# ------------------------------------------------------------------------------
+# Application Classes:
+# ------------------------------------------------------------------------------
 class ItemList(Resource):
     """Dealing with store item listing."""
     @jwt_required()
@@ -126,6 +138,9 @@ class Item(Resource):
         return item, 200
 
 
+# ------------------------------------------------------------------------------
+# API Resources:
+# ------------------------------------------------------------------------------
 API.add_resource(ItemList, '/item')
 API.add_resource(Item, '/item/<string:name>')
 
