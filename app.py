@@ -117,8 +117,7 @@ class Item(Resource):
         global ITEMS
         item = next(filter(lambda x: x['name'] == name, ITEMS), None)
         if item:
-            ITEMS = [next(filter(lambda x: x['name'] != name, ITEMS), None)]
-            print(ITEMS)
+            ITEMS = list(filter(lambda x: x['name'] != name, ITEMS))
             return {'message': 'item deleted'}, 200
         return {'message': 'item not exists'}, 400
 
